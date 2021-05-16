@@ -1517,7 +1517,7 @@ void DB2Manager::LoadHotfixData()
 {
     uint32 oldMSTime = getMSTime();
 
-    QueryResult result = HotfixDatabase.Query("SELECT Id, TableHash, RecordId, Deleted FROM hotfix_data ORDER BY Id");
+    QueryResult result = HotfixDatabase.Query("SELECT Id, TableHash, RecordId, Status FROM hotfix_data ORDER BY Id");
 
     if (!result)
     {
@@ -1536,8 +1536,8 @@ void DB2Manager::LoadHotfixData()
         int32 id = fields[0].GetInt32();
         uint32 tableHash = fields[1].GetUInt32();
         int32 recordId = fields[2].GetInt32();
-        bool deleted = fields[3].GetBool();
-        if (!deleted && _stores.find(tableHash) == _stores.end())
+        HotfixRecord::Status status = static_cast<HotfixRecord::Status>(fields[3].GetUInt8());
+        if (status == HotfixRecord::Status::Valid && _stores.find(tableHash) == _stores.end())
         {
             HotfixBlobKey key = std::make_pair(tableHash, recordId);
             if (std::none_of(_hotfixBlob.begin(), _hotfixBlob.end(), [key](HotfixBlobMap const& blob) { return blob.find(key) != blob.end(); }))
@@ -1552,8 +1552,9 @@ void DB2Manager::LoadHotfixData()
         hotfixRecord.TableHash = tableHash;
         hotfixRecord.RecordID = recordId;
         hotfixRecord.HotfixID = id;
-        _hotfixData.insert(hotfixRecord);
-        deletedRecords[std::make_pair(tableHash, recordId)] = deleted;
+        hotfixRecord.HotfixStatus = status;
+        _hotfixData[id].push_back(hotfixRecord);
+        deletedRecords[std::make_pair(tableHash, recordId)] = status == HotfixRecord::Status::RecordRemoved;
         ++count;
     } while (result->NextRow());
 
@@ -1729,7 +1730,7 @@ void DB2Manager::InsertNewHotfix(uint32 tableHash, uint32 recordId)
     hotfixRecord.TableHash = tableHash;
     hotfixRecord.RecordID = recordId;
     hotfixRecord.HotfixID = ++_maxHotfixId;
-    _hotfixData.insert(hotfixRecord);
+    _hotfixData[hotfixRecord.HotfixID].push_back(hotfixRecord);
 }
 
 std::vector<uint32> DB2Manager::GetAreasForGroup(uint32 areaGroupId) const

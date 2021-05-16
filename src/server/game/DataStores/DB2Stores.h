@@ -300,9 +300,17 @@ public:
 
     struct HotfixRecord
     {
+        enum class Status : uint8
+        {
+            Valid = 1,
+            RecordRemoved = 2,
+            Invalid = 3
+        };
+
         uint32 TableHash = 0;
         int32 RecordID = 0;
         int32 HotfixID = 0;
+        Status HotfixStatus = Status::Invalid;
 
         friend bool operator<(HotfixRecord const& left, HotfixRecord const& right)
         {
@@ -316,7 +324,7 @@ public:
         std::vector<uint8> Data;
     };
 
-    using HotfixContainer = std::set<HotfixRecord>;
+    using HotfixContainer = std::unordered_map<int32, std::vector<HotfixRecord>>;
 
     using ItemBonusList = std::vector<ItemBonusEntry const*>;
     using MapDifficultyContainer = std::unordered_map<uint32, std::unordered_map<uint32, MapDifficultyEntry const*>>;

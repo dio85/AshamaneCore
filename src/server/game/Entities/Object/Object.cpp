@@ -613,6 +613,7 @@ void Object::BuildMovementUpdate(ByteBuffer* data, CreateObjectBits flags) const
     //if (flags.SmoothPhasing)
     //{
     //    data->WriteBit(ReplaceActive);
+    //    data->WriteBit(StopAnimKits);
     //    data->WriteBit(HasReplaceObject);
     //    data->FlushBits();
     //    if (HasReplaceObject)
@@ -733,18 +734,18 @@ void Object::BuildMovementUpdate(ByteBuffer* data, CreateObjectBits flags) const
     {
         Player const* player = ToPlayer();
 
-        uint32 SceneInstanceIDCount = player->GetSceneMgr().GetActiveSceneCount();
+        bool HasSceneInstanceIDs = false;
         bool HasRuneState = ToUnit()->GetPowerIndex(POWER_RUNES) != MAX_POWERS;
 
-        data->WriteBit(SceneInstanceIDCount != 0);
+        data->WriteBit(HasSceneInstanceIDs);
         data->WriteBit(HasRuneState);
         data->FlushBits();
-        if (SceneInstanceIDCount > 0)
-        {
-            *data << uint32(SceneInstanceIDCount);
-            for (auto itr : player->GetSceneMgr().GetSceneByInstanceMap())
-                *data << uint32(itr.first);
-        }
+        //if (HasSceneInstanceIDs)
+         //{
+         //    *data << uint32(SceneInstanceIDs.size());
+         //    for (std::size_t i = 0; i < SceneInstanceIDs.size(); ++i)
+         //        *data << uint32(SceneInstanceIDs[i]);
+         //}
         if (HasRuneState)
         {
             float baseCd = float(player->GetRuneBaseCooldown());

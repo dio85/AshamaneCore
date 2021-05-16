@@ -1612,57 +1612,36 @@ class spell_gen_gadgetzan_transporter_backfire : public SpellScriptLoader
         }
 };
 
-
-class spell_gen_gift_of_naaru : public SpellScriptLoader
+// 28880 - Warrior
+// 59542 - Paladin
+// 59543 - Hunter
+// 59544 - Priest
+// 59545 - Death Knight
+// 59547 - Shaman
+// 59548 - Mage
+// 121093 - Monk
+class spell_gen_gift_of_naaru : public AuraScript
 {
-    public:
-        spell_gen_gift_of_naaru() : SpellScriptLoader("spell_gen_gift_of_naaru") { }
+    PrepareAuraScript(spell_gen_gift_of_naaru);
 
-        class spell_gen_gift_of_naaru_AuraScript : public AuraScript
+    void CalculateAmount(AuraEffect const* aurEff, int32& amount, bool& /*canBeRecalculated*/)
+    {
+        if (!GetCaster() || !aurEff->GetTotalTicks())
+            return;
+
+        if (SpellEffectInfo const* eff1 = GetSpellInfo()->GetEffect(EFFECT_1))
         {
-            PrepareAuraScript(spell_gen_gift_of_naaru_AuraScript);
-
-            void CalculateAmount(AuraEffect const* aurEff, int32& amount, bool& /*canBeRecalculated*/)
-            {
-                if (!GetCaster())
-                    return;
-
-                float heal = 0.0f;
-                switch (GetSpellInfo()->SpellFamilyName)
-                {
-                    case SPELLFAMILY_MAGE:
-                    case SPELLFAMILY_WARLOCK:
-                    case SPELLFAMILY_PRIEST:
-                        heal = 1.885f * float(GetCaster()->SpellBaseDamageBonusDone(GetSpellInfo()->GetSchoolMask()));
-                        break;
-                    case SPELLFAMILY_PALADIN:
-                    case SPELLFAMILY_SHAMAN:
-                        heal = std::max(1.885f * float(GetCaster()->SpellBaseDamageBonusDone(GetSpellInfo()->GetSchoolMask())), 1.1f * float(GetCaster()->GetTotalAttackPowerValue(BASE_ATTACK)));
-                        break;
-                    case SPELLFAMILY_WARRIOR:
-                    case SPELLFAMILY_HUNTER:
-                    case SPELLFAMILY_DEATHKNIGHT:
-                        heal = 1.1f * float(std::max(GetCaster()->GetTotalAttackPowerValue(BASE_ATTACK), GetCaster()->GetTotalAttackPowerValue(RANGED_ATTACK)));
-                        break;
-                    case SPELLFAMILY_GENERIC:
-                    default:
-                        break;
-                }
-
-                int32 healTick = std::floor(heal / aurEff->GetTotalTicks());
-                amount += int32(std::max(healTick, 0));
-            }
-
-            void Register() override
-            {
-                DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_gen_gift_of_naaru_AuraScript::CalculateAmount, EFFECT_0, SPELL_AURA_PERIODIC_HEAL);
-            }
-        };
-
-        AuraScript* GetAuraScript() const override
-        {
-            return new spell_gen_gift_of_naaru_AuraScript();
+            float healPct = eff1->CalcValue() / 100.0f;
+            float heal = healPct * GetCaster()->GetMaxHealth();
+            int32 healTick = std::floor(heal / aurEff->GetTotalTicks());
+            amount += healTick;
         }
+    }
+
+    void Register() override
+    {
+        DoEffectCalcAmount += AuraEffectCalcAmountFn(spell_gen_gift_of_naaru::CalculateAmount, EFFECT_0, SPELL_AURA_PERIODIC_HEAL);
+    }
 };
 
 enum GnomishTransporter

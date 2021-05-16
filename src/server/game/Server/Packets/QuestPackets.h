@@ -619,12 +619,14 @@ namespace WorldPackets
 
         struct WorldQuestUpdateInfo
         {
-            int32 LastUpdate = 0;
-            uint32 QuestID = 0;
-            uint32 Timer = 0;
+            WorldQuestUpdateInfo(time_t lastUpdate, uint32 questID, uint32 timer, int32 variableID, int32 value) :
+                LastUpdate(lastUpdate), QuestID(questID), Timer(timer), VariableID(variableID), Value(value) { }
+            Timestamp<> LastUpdate;
+            uint32 QuestID;
+            uint32 Timer;
             // WorldState
-            int32 VariableID = 0;
-            int32 Value = 0;
+            int32 VariableID;
+            int32 Value;
         };
 
         class WorldQuestUpdateResponse final : public ServerPacket

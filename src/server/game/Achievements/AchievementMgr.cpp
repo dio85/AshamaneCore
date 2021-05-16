@@ -88,7 +88,7 @@ bool AchievementMgr::CanUpdateCriteriaTree(Criteria const* criteria, CriteriaTre
             return false;
         }
 
-        if ((achievement->Faction == ACHIEVEMENT_FACTION_HORDE    && referencePlayer->GetTeam() != HORDE) ||
+        if ((achievement->Faction == ACHIEVEMENT_FACTION_HORDE && referencePlayer->GetTeam() != HORDE) ||
             (achievement->Faction == ACHIEVEMENT_FACTION_ALLIANCE && referencePlayer->GetTeam() != ALLIANCE))
         {
             TC_LOG_TRACE("criteria.achievement", "AchievementMgr::CanUpdateCriteriaTree: (Id: %u Type %s Achievement %u) Wrong faction",
@@ -250,7 +250,7 @@ void PlayerAchievementMgr::LoadFromDB(PreparedQueryResult achievementResult, Pre
                 continue;
 
             CompletedAchievementData& ca = _completedAchievements[achievementid];
-            ca.Date = time_t(fields[1].GetUInt32());
+            ca.Date = fields[1].GetInt64();
             ca.Changed = false;
 
             _achievementPoints += achievement->Points;
@@ -272,7 +272,7 @@ void PlayerAchievementMgr::LoadFromDB(PreparedQueryResult achievementResult, Pre
             Field* fields = criteriaResult->Fetch();
             uint32 id = fields[0].GetUInt32();
             uint64 counter = fields[1].GetUInt64();
-            time_t date = time_t(fields[2].GetUInt32());
+            time_t date = fields[2].GetInt64();
 
             Criteria const* criteria = sCriteriaMgr->GetCriteria(id);
             if (!criteria)
@@ -316,7 +316,7 @@ void PlayerAchievementMgr::SaveToDB(CharacterDatabaseTransaction& trans)
             stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_CHAR_ACHIEVEMENT);
             stmt->setUInt64(0, _owner->GetGUID().GetCounter());
             stmt->setUInt32(1, iter->first);
-            stmt->setUInt32(2, uint32(iter->second.Date));
+            stmt->setInt64(2, iter->second.Date);
             trans->Append(stmt);
 
             iter->second.Changed = false;
@@ -341,7 +341,7 @@ void PlayerAchievementMgr::SaveToDB(CharacterDatabaseTransaction& trans)
                 stmt->setUInt64(0, _owner->GetGUID().GetCounter());
                 stmt->setUInt32(1, iter->first);
                 stmt->setUInt64(2, iter->second.Counter);
-                stmt->setUInt32(3, uint32(iter->second.Date));
+                stmt->setInt64(3, iter->second.Date);
                 trans->Append(stmt);
             }
 
@@ -433,8 +433,8 @@ void PlayerAchievementMgr::SendAllData(Player const* /*receiver*/) const
         progress.Player = itr->second.PlayerGUID;
         progress.Flags = 0;
         progress.Date = itr->second.Date;
-        progress.TimeFromStart = 0;
-        progress.TimeFromCreate = 0;
+        progress.TimeFromStart = Seconds::zero();
+        progress.TimeFromCreate = Seconds::zero();
         achievementData.Data.Progress.push_back(progress);
 
         if (criteria->FlagsCu & CRITERIA_FLAG_CU_ACCOUNT)
@@ -445,8 +445,8 @@ void PlayerAchievementMgr::SendAllData(Player const* /*receiver*/) const
             progress.Player = _owner->GetSession()->GetBattlenetAccountGUID();
             progress.Flags = 0;
             progress.Date = itr->second.Date;
-            progress.TimeFromStart = 0;
-            progress.TimeFromCreate = 0;
+            progress.TimeFromStart = Seconds::zero();
+            progress.TimeFromCreate = Seconds::zero();
             allAccountCriteria.Progress.push_back(progress);
         }
     }
@@ -490,8 +490,8 @@ void PlayerAchievementMgr::SendAchievementInfo(Player* receiver, uint32 /*achiev
         progress.Player = itr->second.PlayerGUID;
         progress.Flags = 0;
         progress.Date = itr->second.Date;
-        progress.TimeFromStart = 0;
-        progress.TimeFromCreate = 0;
+        progress.TimeFromStart = Seconds::zero();
+        progress.TimeFromCreate = Seconds::zero();
         inspectedAchievements.Data.Progress.push_back(progress);
     }
 
@@ -504,7 +504,7 @@ void PlayerAchievementMgr::CompletedAchievement(AchievementEntry const* achievem
     if (_owner->IsGameMaster())
         return;
 
-    if ((achievement->Faction == ACHIEVEMENT_FACTION_HORDE    && referencePlayer->GetTeam() != HORDE) ||
+    if ((achievement->Faction == ACHIEVEMENT_FACTION_HORDE && referencePlayer->GetTeam() != HORDE) ||
         (achievement->Faction == ACHIEVEMENT_FACTION_ALLIANCE && referencePlayer->GetTeam() != ALLIANCE))
         return;
 
@@ -602,7 +602,7 @@ bool PlayerAchievementMgr::ModifierTreeSatisfied(uint32 modifierTreeId) const
     return false;
 }
 
-void PlayerAchievementMgr::SendCriteriaUpdate(Criteria const* criteria, CriteriaProgress const* progress, uint32 timeElapsed, bool timedCompleted) const
+void PlayerAchievementMgr::SendCriteriaUpdate(Criteria const* criteria, CriteriaProgress const* progress, Seconds timeElapsed, bool timedCompleted) const
 {
     if (criteria->FlagsCu & CRITERIA_FLAG_CU_ACCOUNT)
     {
@@ -617,7 +617,7 @@ void PlayerAchievementMgr::SendCriteriaUpdate(Criteria const* criteria, Criteria
 
         criteriaUpdate.Progress.Date = progress->Date;
         criteriaUpdate.Progress.TimeFromStart = timeElapsed;
-        criteriaUpdate.Progress.TimeFromCreate = 0;
+        criteriaUpdate.Progress.TimeFromCreate = Seconds::zero();
 
         SendPacket(criteriaUpdate.Write());
     }
@@ -758,7 +758,7 @@ void GuildAchievementMgr::LoadFromDB(PreparedQueryResult achievementResult, Prep
                 continue;
 
             CompletedAchievementData& ca = _completedAchievements[achievementid];
-            ca.Date = time_t(fields[1].GetUInt32());
+            ca.Date = fields[1].GetInt64();
             Tokenizer guids(fields[2].GetString(), ' ');
             for (uint32 i = 0; i < guids.size(); ++i)
                 ca.CompletingPlayers.insert(ObjectGuid::Create<HighGuid::Player>(uint64(strtoull(guids[i], nullptr, 10))));
@@ -777,7 +777,7 @@ void GuildAchievementMgr::LoadFromDB(PreparedQueryResult achievementResult, Prep
             Field* fields = criteriaResult->Fetch();
             uint32 id = fields[0].GetUInt32();
             uint64 counter = fields[1].GetUInt64();
-            time_t date = time_t(fields[2].GetUInt32());
+            time_t date = fields[2].GetInt64();
             ObjectGuid::LowType guid = fields[3].GetUInt64();
 
             Criteria const* criteria = sCriteriaMgr->GetCriteria(id);
@@ -821,7 +821,7 @@ void GuildAchievementMgr::SaveToDB(CharacterDatabaseTransaction& trans)
         stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_GUILD_ACHIEVEMENT);
         stmt->setUInt64(0, _owner->GetId());
         stmt->setUInt32(1, itr->first);
-        stmt->setUInt32(2, uint32(itr->second.Date));
+        stmt->setInt64(2, itr->second.Date);
         for (GuidSet::const_iterator gItr = itr->second.CompletingPlayers.begin(); gItr != itr->second.CompletingPlayers.end(); ++gItr)
             guidstr << gItr->GetCounter() << ',';
 
@@ -845,7 +845,7 @@ void GuildAchievementMgr::SaveToDB(CharacterDatabaseTransaction& trans)
         stmt->setUInt64(0, _owner->GetId());
         stmt->setUInt32(1, itr->first);
         stmt->setUInt64(2, itr->second.Counter);
-        stmt->setUInt32(3, uint32(itr->second.Date));
+        stmt->setInt64(3, itr->second.Date);
         stmt->setUInt64(4, itr->second.PlayerGUID.GetCounter());
         trans->Append(stmt);
     }
@@ -985,7 +985,7 @@ void GuildAchievementMgr::CompletedAchievement(AchievementEntry const* achieveme
     UpdateCriteria(CRITERIA_TYPE_EARN_ACHIEVEMENT_POINTS, achievement->Points, 0, 0, nullptr, referencePlayer);
 }
 
-void GuildAchievementMgr::SendCriteriaUpdate(Criteria const* entry, CriteriaProgress const* progress, uint32 /*timeElapsed*/, bool /*timedCompleted*/) const
+void GuildAchievementMgr::SendCriteriaUpdate(Criteria const* entry, CriteriaProgress const* progress, Seconds /*timeElapsed*/, bool /*timedCompleted*/) const
 {
     WorldPackets::Achievement::GuildCriteriaUpdate guildCriteriaUpdate;
     guildCriteriaUpdate.Progress.resize(1);
@@ -1176,8 +1176,7 @@ void AchievementGlobalMgr::LoadCompletedAchievements()
         }
         else if (achievement->Flags & (ACHIEVEMENT_FLAG_REALM_FIRST_REACH | ACHIEVEMENT_FLAG_REALM_FIRST_KILL))
             _allCompletedAchievements[achievementId] = std::chrono::system_clock::time_point::max();
-    }
-    while (result->NextRow());
+    } while (result->NextRow());
 
     TC_LOG_INFO("server.loading", ">> Loaded %lu realm first completed achievements in %u ms.", (unsigned long)_allCompletedAchievements.size(), GetMSTimeDiffToNow(oldMSTime));
 }
@@ -1193,7 +1192,7 @@ void AchievementGlobalMgr::LoadRewards()
 
     if (!result)
     {
-        TC_LOG_ERROR("server.loading", ">> Loaded 0 achievement rewards. DB table `achievement_reward` is empty.");
+        TC_LOG_INFO("server.loading", ">> Loaded 0 achievement rewards. DB table `achievement_reward` is empty.");
         return;
     }
 
@@ -1209,13 +1208,13 @@ void AchievementGlobalMgr::LoadRewards()
         }
 
         AchievementReward reward;
-        reward.TitleId[0]       = fields[1].GetUInt32();
-        reward.TitleId[1]       = fields[2].GetUInt32();
-        reward.ItemId           = fields[3].GetUInt32();
+        reward.TitleId[0] = fields[1].GetUInt32();
+        reward.TitleId[1] = fields[2].GetUInt32();
+        reward.ItemId = fields[3].GetUInt32();
         reward.SenderCreatureId = fields[4].GetUInt32();
-        reward.Subject          = fields[5].GetString();
-        reward.Body             = fields[6].GetString();
-        reward.MailTemplateId   = fields[7].GetUInt32();
+        reward.Subject = fields[5].GetString();
+        reward.Body = fields[6].GetString();
+        reward.MailTemplateId = fields[7].GetUInt32();
 
         // must be title or mail at least
         if (!reward.TitleId[0] && !reward.TitleId[1] && !reward.SenderCreatureId)
@@ -1316,8 +1315,8 @@ void AchievementGlobalMgr::LoadRewardLocales()
     {
         Field* fields = result->Fetch();
 
-        uint32 id               = fields[0].GetUInt32();
-        std::string localeName  = fields[1].GetString();
+        uint32 id = fields[0].GetUInt32();
+        std::string localeName = fields[1].GetString();
 
         if (_achievementRewards.find(id) == _achievementRewards.end())
         {
@@ -1326,7 +1325,7 @@ void AchievementGlobalMgr::LoadRewardLocales()
         }
 
         AchievementRewardLocale& data = _achievementRewardLocales[id];
-        LocaleConstant locale         = GetLocaleByName(localeName);
+        LocaleConstant locale = GetLocaleByName(localeName);
         if (!IsValidLocale(locale) || locale == LOCALE_enUS)
             continue;
 

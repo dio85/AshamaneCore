@@ -705,6 +705,7 @@ struct PointOfInterest
     uint32 Flags;
     uint32 Importance;
     std::string Name;
+    uint32 Unknown905;
 };
 
 struct GossipMenuItems
@@ -816,6 +817,7 @@ struct SceneTemplate
     uint32 SceneId;
     uint32 PlaybackFlags;
     uint32 ScenePackageId;
+    bool Encrypted = false;
     uint32 ScriptId;
 };
 
